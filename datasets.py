@@ -3,13 +3,12 @@ import os
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset
 import torch
-from util import Partition 
 from scipy.spatial.distance import cdist
 import numpy as np
 from itertools import product
 
 
-def calcRefAngles(positions, references=np.array([[0.,0.], [5.0, 0.0], [0.0,5.0]])):
+def calcRefAngles(positions, references=np.array([[0.,0.], [2.5, 2.5], [0.0,5.0]])):
     angles = []
     for idx, ref in enumerate(references):
         ang = np.rad2deg(np.arctan2(positions[:,1] - ref[1], positions[:,0] - ref[0]))
