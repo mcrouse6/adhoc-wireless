@@ -1,0 +1,5 @@
+env3/*
+*.pyc
+models/*
+data/*
+__pycache__/*
