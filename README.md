@@ -1,4 +1,3 @@
-Fusion of wireless time of flight and image data testing
+Adhoc wireless beam finding via reference devices.
 
-- consider fusion and hulucination networks
-
+Basic MLP with accurate AOA measurements (version 0.1)
