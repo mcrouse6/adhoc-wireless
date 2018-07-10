@@ -146,7 +146,7 @@ class RandomRefDataset(Dataset):
     """Ad Hoc Angles"""
 
     def __init__(self, train=True, seed=10, num_samps=5000, num_referencenodes=2, 
-                       quantization=0, rejection_sampling=False, noise_scale=0.0):
+                       quantization=0, rejection_sampling=False, noise_scale=0.0, ref_scale=1.0):
         """
         Args:
         """
@@ -174,9 +174,10 @@ class RandomRefDataset(Dataset):
 
         # TODO: check this
         # generate reference node positions
+        self.ref_scale = ref_scale
         newmethodref_list = []
         for i in range(num_referencenodes):
-            newmethodref_list.append([np.random.normal(loc=self.positions1, scale=1.)])
+            newmethodref_list.append([np.random.normal(loc=self.positions1, scale=self.ref_scale)])
         self.newmethodref = np.array(newmethodref_list)
         # self.newmethodref = np.array([[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)]])
         # if num_referencenodes == 2:
@@ -239,21 +240,23 @@ def get_adhoc_dataset(dataset_root, batch_size, is_cuda=True):
     
     return train, train_loader, test, test_loader
 
-def get_randomref_dataset(dataset_root, batch_size, num_referencenodes, quantization, rejection_sampling, noise_scale, is_cuda=True):
+def get_randomref_dataset(dataset_root, batch_size, num_samps, num_referencenodes, quantization, rejection_sampling, noise_scale, ref_scale, is_cuda=True):
     kwargs = {'num_workers': 12, 'pin_memory': True} if is_cuda else {}
     train = RandomRefDataset(train=True, 
-                             num_samps=2000, 
+                             num_samps=num_samps['train'], 
                              num_referencenodes=num_referencenodes, 
                              quantization=quantization, 
                              rejection_sampling=rejection_sampling,
-                             noise_scale=noise_scale) 
+                             noise_scale=noise_scale,
+                             ref_scale=ref_scale) 
 
     test = RandomRefDataset(train=False, 
-                            num_samps=1000, 
+                            num_samps=num_samps['test'], 
                             num_referencenodes=num_referencenodes, 
                             quantization=quantization, 
                             rejection_sampling=rejection_sampling,
-                            noise_scale=noise_scale)
+                            noise_scale=noise_scale,
+                            ref_scale=ref_scale)
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
                                                shuffle=True, drop_last=True, **kwargs)

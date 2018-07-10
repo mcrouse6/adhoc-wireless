@@ -17,7 +17,7 @@ import datasets_expanded as datasets
 import net
 import matplotlib.pyplot as plt
 
-from util import cdf
+from util import cdf, simulate_args_from_namespace
 
 
 def train(models, train_loader, optimizers):
@@ -115,26 +115,30 @@ def train_model(models, model_path, train_loader, test_loader, lr, epochs):
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Example')
-    parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=50, metavar='N',
                         help='number of epochs to train (default: 50)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                         help='learning rate (default: 0.1)')
-    parser.add_argument('--noise_scale', type=float, default=0.0, metavar='ns',
+    parser.add_argument('--noise-scale', type=float, default=0.0, metavar='NS',
                         help='noise_scale - angle noise (default: 0.0)')
-    parser.add_argument('--dataset', default='mnist', help='dataset name')
+    parser.add_argument('--ref-scale', type=float, default=1.0, metavar='RS',
+                        help='ref_scale - ref location scale (default: 1.0)')
+    parser.add_argument('--output', default='models/',
+                        help='output directory')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--output', default='models/model_mlp.pth',
-                        help='output directory')
     parser.add_argument('--quantization', type=float, default=0, metavar='Q',
                         help='Quantization (0, 1, 10)')
     parser.add_argument('--rejectionsampling', type=int, default=0, metavar='R',
                         help='use rejection sampling (0 for no/1 for yes)')
     parser.add_argument('--numreferencenodes', type=int, default=2, metavar='RN',
                         help='number of reference nodes')
+    parser.add_argument('--train-size', type=int, default=1000, metavar='TS',
+                        help='training dataset size')
+    parser.add_argument('--test-size', type=int, default=1000, metavar='TS',
+                        help='training dataset size')
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
 
@@ -145,20 +149,30 @@ if __name__ == '__main__':
     else:
         assert False, "Invalid choice for rejection sampling"
 
+
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
     train_set, train_loader, test_set, test_loader = datasets.get_randomref_dataset("", 
                                                                                     args.batch_size, 
+                                                                                    {'train' : args.train_size,
+                                                                                     'test' : args.test_size},
                                                                                     args.numreferencenodes, 
                                                                                     args.quantization, 
                                                                                     args.rejectionsampling,
-                                                                                    args.noise_scale)
+                                                                                    args.noise_scale,
+                                                                                    args.ref_scale)
 
     adhoc_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
     models = {'adhoc_model' : adhoc_model}
+
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+    out_str = "&".join(simulate_args_from_namespace(args, positional=['output']))
+    out_str = args.output+out_str+".pth"  
+    print(out_str)
     if args.cuda:
         for _, model in models.items():
             model = model.cuda()
-    model_acc = train_model(models, args.output, train_loader, test_loader, args.lr, args.epochs)
+    model_acc = train_model(models, out_str, train_loader, test_loader, args.lr, args.epochs)
