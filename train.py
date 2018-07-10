@@ -122,6 +122,8 @@ if __name__ == '__main__':
                         help='number of epochs to train (default: 50)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                         help='learning rate (default: 0.1)')
+    parser.add_argument('--noise_scale', type=float, default=0.0, metavar='ns',
+                        help='noise_scale - angle noise (default: 0.0)')
     parser.add_argument('--dataset', default='mnist', help='dataset name')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
@@ -147,7 +149,12 @@ if __name__ == '__main__':
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    train_set, train_loader, test_set, test_loader = datasets.get_randomref_dataset("", 32, args.numreferencenodes, args.quantization, args.rejectionsampling)
+    train_set, train_loader, test_set, test_loader = datasets.get_randomref_dataset("", 
+                                                                                    args.batch_size, 
+                                                                                    args.numreferencenodes, 
+                                                                                    args.quantization, 
+                                                                                    args.rejectionsampling,
+                                                                                    args.noise_scale)
 
     adhoc_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
     models = {'adhoc_model' : adhoc_model}

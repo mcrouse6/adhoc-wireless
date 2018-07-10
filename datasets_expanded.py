@@ -37,7 +37,7 @@ def calcRefAnglesRandRefQuantization(positions, references, quantization):
         quantized_angles /= float(quantization)
         quantized_angles = np.around(quantized_angles, 0)
         quantized_angles *= float(quantization)
-    print "Num Unique: ", np.unique(quantized_angles, axis=1).shape
+    print( "Num Unique: {}".format( np.unique(quantized_angles, axis=1).shape))
     # print angles
     # print angles.shape
     return quantized_angles/np.max(quantized_angles)
@@ -46,11 +46,11 @@ def calcRefAnglesRandRefQuantization(positions, references, quantization):
 def RejectSamplingRemove(quant_angles_1, quant_angles_2, positions_u, positions_v, references, final_num_samples):
     num_refnodes = references.shape[0]
     # references = references[:2, :, :]
-    print "quant_angles_1: ", quant_angles_1.shape
-    print "quant_angles_2: ", quant_angles_2.shape
-    print "positions_u: ", positions_u.shape
-    print "positions_v: ", positions_v.shape
-    print "references: ", references.shape
+    print( "quant_angles_1: {}".format( quant_angles_1.shape))
+    print("quant_angles_2: {}".format( quant_angles_2.shape))
+    print( "positions_u: {}".format( positions_u.shape))
+    print( "positions_v: {}".format( positions_v.shape))
+    print( "references: {}".format( references.shape))
 
     # allocate arrays to hold reject sampling data
     new_quant_angles_1 = np.zeros((num_refnodes,final_num_samples))
@@ -64,7 +64,6 @@ def RejectSamplingRemove(quant_angles_1, quant_angles_2, positions_u, positions_
 
     # find how many many-to-one repeats exist
     num_unique = np.max(match_idxs)
-    print num_unique
 
     # fill up how many samples you want to end with
     for i in range(final_num_samples):
@@ -146,7 +145,8 @@ class AdHocDataset(Dataset):
 class RandomRefDataset(Dataset):
     """Ad Hoc Angles"""
 
-    def __init__(self, train=True, seed=10, num_samps=5000, num_referencenodes=2, quantization=0, rejection_sampling=False):
+    def __init__(self, train=True, seed=10, num_samps=5000, num_referencenodes=2, 
+                       quantization=0, rejection_sampling=False, noise_scale=0.0):
         """
         Args:
         """
@@ -176,7 +176,7 @@ class RandomRefDataset(Dataset):
         # generate reference node positions
         newmethodref_list = []
         for i in range(num_referencenodes):
-            newmethodref_list.append([np.random.normal(loc=self.positions1)])
+            newmethodref_list.append([np.random.normal(loc=self.positions1, scale=1.)])
         self.newmethodref = np.array(newmethodref_list)
         # self.newmethodref = np.array([[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)]])
         # if num_referencenodes == 2:
@@ -207,7 +207,9 @@ class RandomRefDataset(Dataset):
 
         # add noise
         # TODO: parameterize this from command line
-        # self.ref_angles += np.random.normal(loc=0, scale=0.05, size=self.ref_angles.shape)
+        self.noise_scale = noise_scale 
+        if self.noise_scale > 0.0:
+            self.ref_angles += np.random.normal(loc=0, scale=self.noise_scale, size=self.ref_angles.shape)
         
 
         self.ys = np.expand_dims(
@@ -220,8 +222,6 @@ class RandomRefDataset(Dataset):
         return self.ref_angles.shape[0]
 
     def __getitem__(self, idx):
-        #print self.ref_angles
-        #assert False
         return  {'pos' : (self.positions1[idx], self.positions2[idx]),
                  'ref_angles': self.ref_angles[idx], 
                  'target' : self.ys[idx]}
@@ -239,10 +239,21 @@ def get_adhoc_dataset(dataset_root, batch_size, is_cuda=True):
     
     return train, train_loader, test, test_loader
 
-def get_randomref_dataset(dataset_root, batch_size, num_referencenodes, quantization, rejection_sampling, is_cuda=True):
+def get_randomref_dataset(dataset_root, batch_size, num_referencenodes, quantization, rejection_sampling, noise_scale, is_cuda=True):
     kwargs = {'num_workers': 12, 'pin_memory': True} if is_cuda else {}
-    train = RandomRefDataset(train=True, num_samps=1000, num_referencenodes=num_referencenodes, quantization=quantization, rejection_sampling=rejection_sampling) 
-    test = RandomRefDataset(train=False, num_samps=1000, num_referencenodes=num_referencenodes, quantization=quantization, rejection_sampling=rejection_sampling)
+    train = RandomRefDataset(train=True, 
+                             num_samps=2000, 
+                             num_referencenodes=num_referencenodes, 
+                             quantization=quantization, 
+                             rejection_sampling=rejection_sampling,
+                             noise_scale=noise_scale) 
+
+    test = RandomRefDataset(train=False, 
+                            num_samps=1000, 
+                            num_referencenodes=num_referencenodes, 
+                            quantization=quantization, 
+                            rejection_sampling=rejection_sampling,
+                            noise_scale=noise_scale)
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
                                                shuffle=True, drop_last=True, **kwargs)
