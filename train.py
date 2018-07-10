@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from util import cdf, simulate_args_from_namespace
 
 
-def train(models, train_loader, optimizers):
+def train(models, train_loader, optimizers, sisr_thres=np.inf):
     for _, model in models.items():
         model.train()
     model_losses = [0]*3
@@ -37,6 +37,8 @@ def train(models, train_loader, optimizers):
 
         # ref_loss = F.mse_loss(ref_predictions, target)
         ref_loss = F.l1_loss(ref_predictions, target)
+
+        ref_loss = ref_loss.clamp(max=sisr_thres)
 
         ref_loss.backward()
 
@@ -88,7 +90,7 @@ def test(models, test_loader):
     return model_losses, model_acc
 
 
-def train_model(models, model_path, train_loader, test_loader, lr, epochs):
+def train_model(models, model_path, train_loader, test_loader, lr, epochs, sisr_thres=np.inf):
     optimizers, schedulers = [], []
     for _, model in models.items():
         ps = filter(lambda x: x.requires_grad, model.parameters())
@@ -99,7 +101,7 @@ def train_model(models, model_path, train_loader, test_loader, lr, epochs):
 
     for epoch in range(1, epochs):
         print('[Epoch {}]'.format(epoch))
-        train(models, train_loader, optimizers)
+        train(models, train_loader, optimizers, sisr_thres=sisr_thres)
         model_losses, model_acc = test(models, test_loader)
         if epoch % 10 == 9:
             print("Outputing model")
@@ -125,6 +127,8 @@ if __name__ == '__main__':
                         help='noise_scale - angle noise (default: 0.0)')
     parser.add_argument('--ref-scale', type=float, default=1.0, metavar='RS',
                         help='ref_scale - ref location scale (default: 1.0)')
+    parser.add_argument('--sisr-thres', type=float, default=np.inf, metavar='RS',
+                        help='sisr-thres - (default: inf)')
     parser.add_argument('--output', default='models/',
                         help='output directory')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -175,4 +179,5 @@ if __name__ == '__main__':
     if args.cuda:
         for _, model in models.items():
             model = model.cuda()
-    model_acc = train_model(models, out_str, train_loader, test_loader, args.lr, args.epochs)
+    model_acc = train_model(models, out_str, train_loader, test_loader, args.lr, args.epochs, 
+                            sisr_thres=args.sisr_thres)
