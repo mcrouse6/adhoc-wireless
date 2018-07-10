@@ -20,41 +20,7 @@ def calcRefAngles(positions, references=np.array([[0.,0.], [2.5, 2.5], [0.0,5.0]
     angles = np.array(angles)
     return angles/np.max(angles)
 
-# def calcRefAnglesRandRef(positions):
-# #def calcRefAngles(positions, references=np.array([[0.,0.], [2.5, 2.5]])):
-#     angles = []
-#     for idxp, pos in enumerate(positions):
-#         references = np.array([[np.random.normal(loc=pos[1]),np.random.normal(loc=pos[0])],[np.random.normal(loc=pos[1]),np.random.normal(loc=pos[0])]])
-#         tempang = np.zeros(5000)
-#         for idx, ref in enumerate(references):
-#             tempang[idxp] = np.rad2deg(np.arctan2(pos[1] - ref[1], pos[0] - ref[0]))
-#             idxx = np.where(ang < 0)[0]
-#             ang[idxx] += 360
-#             angles.append(ang)
-#     angles = np.array(angles)
-#     return angles/np.max(angles)
 
-# def calcRefAnglesRandRef(positions):
-#     angles = np.zeros((3,5000))
-#     for idxp, pos in enumerate(positions):
-#         references = np.array([[np.random.normal(loc=pos[1]),np.random.normal(loc=pos[0])],[np.random.normal(loc=pos[1]),np.random.normal(loc=pos[0])],[np.random.normal(loc=pos[1]),np.random.normal(loc=pos[0])]])
-#         for idx, ref in enumerate(references):
-#             angles[idx, idxp] = np.rad2deg(np.arctan2(pos[1] - ref[1], pos[0] - ref[0]))
-#     angles[np.where(angles < 0)] += 360
-#     return angles/np.max(angles)
-
-
-# calculate reference angles for random reference nodes
-# REPLACED BY calcRefAnglesRandRefQuantization(...) method which also implements quantization
-def calcRefAnglesRandRef(positions, references):
-    angles = []
-    for idx, ref in enumerate(references):
-        ang = np.rad2deg(np.arctan2(positions[:,1] - ref[:,1], positions[:,0] - ref[:,0]))
-        idx = np.where(ang < 0)[0]
-        ang[idx] += 360
-        angles.append(ang)
-    angles = np.array(angles)
-    return angles/np.max(angles)
 
 # calculate reference angles for random reference nodes and perform quantization on reference angles
 def calcRefAnglesRandRefQuantization(positions, references, quantization):
