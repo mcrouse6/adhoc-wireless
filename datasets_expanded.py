@@ -37,9 +37,9 @@ def calcRefAnglesRandRefQuantization(positions, references, quantization):
         quantized_angles /= float(quantization)
         quantized_angles = np.around(quantized_angles, 0)
         quantized_angles *= float(quantization)
-    print( "Num Unique: {}".format( np.unique(quantized_angles, axis=1).shape))
-    # print angles
-    # print angles.shape
+    # print( "Num Unique: {}".format( np.unique(quantized_angles,
+    # axis=1).shape))
+    
     return quantized_angles/np.max(quantized_angles)
 
 
@@ -176,12 +176,14 @@ class RandomRefDataset(Dataset):
         # generate reference node positions
         self.ref_scale = ref_scale
         newmethodref_list = []
+        tmp_l = []
         for i in range(num_referencenodes):
             newmethodref_list.append([np.random.normal(loc=self.positions1, scale=self.ref_scale)])
+            xs = [np.random.uniform(low=x-self.ref_scale,high=x+self.ref_scale, size=1) for x in self.positions1[:,0]]
+            ys = [np.random.uniform(low=y-self.ref_scale,high=y+self.ref_scale, size=1) for y in self.positions1[:,1]]
+            tmp_l.append( [np.hstack((xs,ys))])
         self.newmethodref = np.array(newmethodref_list)
-        # self.newmethodref = np.array([[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)],[np.random.normal(loc=self.positions1)]])
-        # if num_referencenodes == 2:
-            # self.newmethodref = self.newmethodref[:2]
+        # self.newmethodref = np.array(tmp_l)
 
 
 
