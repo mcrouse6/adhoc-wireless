@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-import datasets
+import datasets_expanded as datasets
 import net
 import matplotlib.pyplot as plt
 
@@ -127,16 +127,29 @@ if __name__ == '__main__':
                         help='random seed (default: 1)')
     parser.add_argument('--output', default='models/model_mlp.pth',
                         help='output directory')
+    parser.add_argument('--quantization', type=float, default=0, metavar='Q',
+                        help='Quantization (0, 1, 10)')
+    parser.add_argument('--rejectionsampling', type=int, default=0, metavar='R',
+                        help='use rejection sampling (0 for no/1 for yes)')
+    parser.add_argument('--numreferencenodes', type=int, default=2, metavar='RN',
+                        help='number of reference nodes')
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
+
+    if args.rejectionsampling == 0:
+        args.rejectionsampling = False
+    elif args.rejectionsampling == 1:
+        args.rejectionsampling = True
+    else:
+        assert False, "Invalid choice for rejection sampling"
 
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    train_set, train_loader, test_set, test_loader = datasets.get_adhoc_dataset("", 32)
+    train_set, train_loader, test_set, test_loader = datasets.get_randomref_dataset("", 32, args.numreferencenodes, args.quantization, args.rejectionsampling)
 
-    adhoc_model = net.MLP(6, 1, activation=True)
+    adhoc_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
     models = {'adhoc_model' : adhoc_model}
     if args.cuda:
         for _, model in models.items():
