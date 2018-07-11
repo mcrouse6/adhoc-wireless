@@ -169,8 +169,6 @@ class RandomRefDataset(Dataset):
         self.positions1 = np.random.uniform(0,4.9, num_samps*2).reshape(-1,2).astype(np.float32)
         self.positions2 = np.random.uniform(0,4.9, num_samps*2).reshape(-1,2).astype(np.float32)
 
-        # re-set random seed to be random for generating reference nodes
-        np.random.seed()
 
         # TODO: check this
         # generate reference node positions
@@ -185,6 +183,8 @@ class RandomRefDataset(Dataset):
         self.newmethodref = np.array(newmethodref_list)
         # self.newmethodref = np.array(tmp_l)
 
+        # re-set random seed to be random for generating reference nodes
+        np.random.seed()
 
 
         self.newmethodref = self.newmethodref.reshape(num_referencenodes,-1,2)
