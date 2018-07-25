@@ -26,19 +26,18 @@ def train(models, train_loader, optimizers, sisr_thres=np.inf):
     model_losses = [0]*3
     for idx, sample_batch in enumerate(tqdm(train_loader, leave=False)):
         if torch.cuda.is_available():
-            ref_data, target = sample_batch['ref_angles'].cuda(), sample_batch['target'].cuda()
+            ref_data, target = sample_batch['data'].cuda(), sample_batch['target'].cuda()
         ref_data, target = Variable(ref_data),  Variable(target)
 
 
         for optimizer in optimizers:
             optimizer.zero_grad()
 
-        ref_predictions, _ = models['adhoc_model'](ref_data)
+        ref_predictions, _ = models['orientation_model'](ref_data)
 
-        # ref_loss = F.mse_loss(ref_predictions, target)
+        #ref_loss = F.mse_loss(ref_predictions, target)
         ref_loss = F.l1_loss(ref_predictions, target)
 
-        ref_loss = ref_loss.clamp(max=sisr_thres)
 
         ref_loss.backward()
 
@@ -64,11 +63,11 @@ def test(models, test_loader):
 
     for idx, sample_batch in enumerate(tqdm(test_loader, leave=False)):
         if torch.cuda.is_available():
-            ref_data, target = sample_batch['ref_angles'].cuda(), sample_batch['target'].cuda()
+            ref_data, target = sample_batch['data'].cuda(), sample_batch['target'].cuda()
         ref_data, target = Variable(ref_data),  Variable(target)
 
 
-        ref_predictions, _ = models['adhoc_model'](ref_data)
+        ref_predictions, _ = models['orientation_model'](ref_data)
         # ref_loss = F.mse_loss(ref_predictions, target)
         ref_loss = F.l1_loss(ref_predictions, target)
        
@@ -105,7 +104,7 @@ def train_model(models, model_path, train_loader, test_loader, lr, epochs, sisr_
         model_losses, model_acc = test(models, test_loader)
         if epoch % 10 == 9:
             print("Outputing model")
-            torch.save(models['adhoc_model'], model_path)
+            torch.save(models['orientation_model'], model_path)
         for scheduler in schedulers:
             scheduler.step()
     
@@ -135,8 +134,6 @@ if __name__ == '__main__':
                         help='random seed (default: 1)')
     parser.add_argument('--quantization', type=float, default=0, metavar='Q',
                         help='Quantization (0, 1, 10)')
-    parser.add_argument('--rejectionsampling', type=int, default=0, metavar='R',
-                        help='use rejection sampling (0 for no/1 for yes)')
     parser.add_argument('--numreferencenodes', type=int, default=2, metavar='RN',
                         help='number of reference nodes')
     parser.add_argument('--train-size', type=int, default=1000, metavar='TS',
@@ -146,30 +143,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
 
-    if args.rejectionsampling == 0:
-        args.rejectionsampling = False
-    elif args.rejectionsampling == 1:
-        args.rejectionsampling = True
-    else:
-        assert False, "Invalid choice for rejection sampling"
-
 
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    train_set, train_loader, test_set, test_loader = datasets.get_randomref_dataset("", 
+    train_set, train_loader, test_set, test_loader = datasets.get_orientation_dataset("", 
                                                                                     args.batch_size, 
                                                                                     {'train' : args.train_size,
                                                                                      'test' : args.test_size},
                                                                                     args.numreferencenodes, 
                                                                                     args.quantization, 
-                                                                                    args.rejectionsampling,
                                                                                     args.noise_scale,
                                                                                     args.ref_scale)
-
-    adhoc_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
-    models = {'adhoc_model' : adhoc_model}
+    args.numreferencenodes = 1 # hardcoded for now (careful!)
+    orientation_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
+    models = {'orientation_model' : orientation_model}
 
     if not os.path.exists(args.output):
         os.makedirs(args.output)
