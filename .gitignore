@@ -3,3 +3,5 @@ env3/*
 models/*
 data/*
 __pycache__/*
+figs/*
+.*DS_Store*
