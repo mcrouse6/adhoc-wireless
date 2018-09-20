@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-import datasets_expanded as datasets
+import datasets
 import net
 import matplotlib.pyplot as plt
 
@@ -35,8 +35,8 @@ def train(models, train_loader, optimizers, sisr_thres=np.inf):
 
         ref_predictions, _ = models['orientation_model'](ref_data)
 
-        #ref_loss = F.mse_loss(ref_predictions, target)
-        ref_loss = F.l1_loss(ref_predictions, target)
+        ref_loss = F.mse_loss(ref_predictions, target)
+        # ref_loss = F.l1_loss(ref_predictions, target)
 
 
         ref_loss.backward()
@@ -68,8 +68,8 @@ def test(models, test_loader):
 
 
         ref_predictions, _ = models['orientation_model'](ref_data)
-        # ref_loss = F.mse_loss(ref_predictions, target)
-        ref_loss = F.l1_loss(ref_predictions, target)
+        ref_loss = F.mse_loss(ref_predictions, target)
+        # ref_loss = F.l1_loss(ref_predictions, target)
        
         model_losses[0] += ref_loss
 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
                                                                                     args.quantization, 
                                                                                     args.noise_scale,
                                                                                     args.ref_scale)
-    args.numreferencenodes = 1 # hardcoded for now (careful!)
+
     orientation_model = net.MLP(2*args.numreferencenodes, 1, activation=True)
     models = {'orientation_model' : orientation_model}
 

@@ -71,7 +71,7 @@ class AdHocDataset(Dataset):
 class OrientationDataset(Dataset):
     """Ad Hoc Orientations"""
 
-    def __init__(self, train=True, seed=10, num_samps=5000):
+    def __init__(self, train=True, seed=10, num_samps=5000, num_referencenodes=1, noise_scale=0.0):
         """
         Args:
         """
@@ -85,16 +85,30 @@ class OrientationDataset(Dataset):
         self.num_samps = num_samps
         np.random.seed(self.seed)
         self.mobile_positions = np.random.uniform(0,4.9, num_samps*2).reshape(-1,2).astype(np.float32)
+        
+        self.references = np.array([[0., 0.], [5., 5.], [0., 5.], [5., 0.], [2.5,2.5], 
+                                    [2.5, 0.], [0., 2.5], [5., 2.5], [2.5, 5.], [1.,1.]] )
+        assert num_referencenodes <= 10, "Not enough reference nodes defined"
+        self.references = self.references[:num_referencenodes]
+        #np.random.uniform(0,4.9, num_referencenodes*2).reshape(-1,2).astype(np.float32) 
+        #print(self.references)
         # angles will be normalized between 0 and 1 (lying, actually )
 
         self.mobile_orientations = np.random.uniform(0, 1, num_samps).astype(np.float32)         
-        self.theta = calcRefAngles(self.mobile_positions).astype(np.float32) 
+        self.theta = calcRefAngles(self.mobile_positions, self.references).astype(np.float32) 
         self.beta = ( self.theta + self.mobile_orientations ) % 1.
         self.data = np.expand_dims(np.vstack((self.theta,self.beta)), axis=1)
         self.data = np.transpose(self.data, (2,1,0))
         self.mobile_orientations = np.expand_dims(self.mobile_orientations, axis=1)
 
         np.random.seed()
+
+        noise_mean = 0.0
+        gauss_noise = np.random.normal(loc=noise_mean,\
+                                            scale=noise_scale,\
+                                            size=(self.data.shape))
+
+        self.data += gauss_noise
 
 
     def __len__(self):
@@ -113,9 +127,10 @@ def get_orientation_dataset(dataset_root,
                             noise_scale, 
                             ref_scale, 
                             is_cuda=True):
+
     kwargs = {'num_workers': 12, 'pin_memory': True} if is_cuda else {}
-    train = OrientationDataset(train=True) 
-    test = OrientationDataset(train=False, num_samps=1000)
+    train = OrientationDataset(train=True, num_referencenodes=num_referencenodes, noise_scale=noise_scale) 
+    test = OrientationDataset(train=False, num_referencenodes=num_referencenodes, num_samps=1000, noise_scale=noise_scale)
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size,
                                                shuffle=True, drop_last=True, **kwargs)
